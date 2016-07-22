@@ -44,11 +44,6 @@ def getInfor(url):
         pageNumber = 1
         subName  = parts[-2]
     return {'pageNumber': pageNumber, 'subName' : subName }
-
-def getFileName(url):
-    infor = getInfor(url)
-    htmlName = infor['subName']+'-'+str(infor['pageNumber'])
-    return htmlName;
     
 def parseHTML(url):
     result = requests.get(url)
@@ -56,7 +51,7 @@ def parseHTML(url):
     return soup
 
 def getLegitUrl(url,width,height):
-    url = re.sub('\d+x\d+',width+'x'+height,url)
+    url = re.sub('\d+x\d+',''.join([str(width),'x',str(height)]),url)
     headResult = requests.head(url)
     if headResult.ok: 
         return url
@@ -72,18 +67,72 @@ def getDownloadableUrl(url):
         if(getLegitUrl(url,j,j)):
             return getLegitUrl(url,j,j)
 
-def savePNGToLocal(url):
+def savePNGToLocal(url,fileName):
     r = requests.get(url)
-    fileName = url.split('/')[-1]
     with open(fileName, "wb") as code:
         code.write(r.content)
+
+def getImageUrl(soup):
+    imgs = [getDataOriginal(img) for img in soup.find_all('img') if getDataOriginal(img) != 'None' and 'product' in getDataOriginal(img)]
+    return imgs;
     
+def getLastPageNumber(soup):
+    pages  = [int(x.getText()) for x in soup.find_all('a', {'class' :'page' }) if x.getText() != '']
+    lastPage = max(pages)
+    return lastPage
+
+def setDir(directory = 'image'):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    os.chdir(directory)
+    
+def getImagesJob(url):
+    soup = parseHTML(url)
+    imgUrls = getImageUrl(soup);
+    infor = getInfor(url)
+    for u in imgUrls:
+        data.append( {'url' : u, 'subName': infor['subName']} )
+    
+def dowloadImagesJob(data):
+    try:
+        url = data['url']
+        subName = data['subName']
+        url = getDownloadableUrl(url)
+        fileName = '_'.join([ subName,url.split('/')[-1] ])
+        savePNGToLocal(url,fileName)
+    except:
+        print data
+        
+def pool(job,params):
+    print 'Initializing...'
+    # Build our `map` parameters
+    # Initialize a pool, 5 threads in this case
+    pool = workerpool.WorkerPool(size=32)
+    # The ``download`` method will be called with a line from the second 
+    # parameter for each job.
+    pool.map(job, params)
+    # Send shutdown jobs to all threads, and wait until all the jobs have been completed
+    pool.shutdown()
+    pool.wait()
+    print 'job well done!'
 #http://www.designbyhumans.com/shop/mens-t-shirts/page/1/?av=artwork
+
 def crawlSubcategory(url):
     if '?av=artwork' not in url:
         raise ValueError('Url not contain ?av=artwork, go fuck yourself!...')
     soup = parseHTML(url)
-    pages  = [int(x.getText()) for x in soup.find_all('a', {'class' :'page' }) if x.getText() != '']
-    lastPage = max(pages)
-    imgs = [getDataOriginal(img) for img in soup.find_all('img') if getDataOriginal(img) != 'None' and 'product' in getDataOriginal(img)]
-    
+    lastPage = getLastPageNumber(soup)
+    pageUrls = [re.sub('[/]\d+[/]','/'+str(i)+'/',url) for i in range(1,lastPage+1)]
+    print 'Begin get image job!'
+    pool(getImagesJob,pageUrls)
+    print 'Number of images:',len(data)
+    setDir()
+    print 'Begin get downloadJob job!'
+    pool(dowloadImagesJob,data)
+##################
+#Test   
+url = 'http://www.designbyhumans.com/shop/mens-t-shirts/?av=artwork'
+data = []
+crawlSubcategory(url)
+
+
