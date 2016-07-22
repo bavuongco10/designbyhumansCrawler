@@ -100,6 +100,7 @@ def dowloadImagesJob(data):
         url = getDownloadableUrl(url)
         fileName = '_'.join([ subName,url.split('/')[-1] ])
         savePNGToLocal(url,fileName)
+        print fileName
     except:
         print data
         
@@ -127,7 +128,7 @@ def crawlSubcategory(url):
     pool(getImagesJob,pageUrls)
     print 'Number of images:',len(data)
     setDir()
-    print 'Begin get downloadJob job!'
+    print 'Begin download images job!'
     pool(dowloadImagesJob,data)
 ##################
 #Test   
