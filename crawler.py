@@ -35,6 +35,26 @@ def getDataOriginal(img):
 
 # input :http://cdn4.designbyhumans.com/product/design/u1075178/pr275372-2-2789974-153x56-b-p-000000.jpg
 # expected : http://cdn4.designbyhumans.com/product/design/u1075178/pr275372-2-2789974-1000x1000-b-p-000000.png
+def getInfor(url):
+    parts = url.split('/')
+    if isInt(parts[-2]):
+        pageNumber = parts[-2]
+        subName = parts[-4]
+    else:
+        pageNumber = 1
+        subName  = parts[-2]
+    return {'pageNumber': pageNumber, 'subName' : subName }
+
+def getFileName(url):
+    infor = getInfor(url)
+    htmlName = infor['subName']+'-'+str(infor['pageNumber'])
+    return htmlName;
+    
+def parseHTML(url):
+    result = requests.get(url)
+    soup=BeautifulSoup(result.content,"html.parser")
+    return soup
+
 def getLegitUrl(url,width,height):
     url = re.sub('\d+x\d+',width+'x'+height,url)
     headResult = requests.head(url)
@@ -58,27 +78,12 @@ def savePNGToLocal(url):
     with open(fileName, "wb") as code:
         code.write(r.content)
     
-def getInfor(url):
-    parts = url.split('/')
-    if isInt(parts[-2]):
-        pageNumber = parts[-2]
-        subName = parts[-4]
-    else:
-        pageNumber = 1
-        subName  = parts[-2]
-    return {'pageNumber': pageNumber, 'subName' : subName }
-def parseHTML(url,htmlName):
-    result = requests.get(url)
-    soup=BeautifulSoup(result.content,htmlName+'.parser')
-    return soup
 #http://www.designbyhumans.com/shop/mens-t-shirts/page/1/?av=artwork
 def crawlSubcategory(url):
     if '?av=artwork' not in url:
         raise ValueError('Url not contain ?av=artwork, go fuck yourself!...')
-    infor = getInfor(url)
-    htmlName = infor.subName+'-'+str(infor.pageNumber)
-    soup = parseHTML(url,htmlName)
+    soup = parseHTML(url)
     pages  = [int(x.getText()) for x in soup.find_all('a', {'class' :'page' }) if x.getText() != '']
     lastPage = max(pages)
-    imgs = [getDataOriginal(img) for img in soup.find_all('img') if getDataOriginal(img) != 'None' and 'product' in getDataOriginal(img) ]
+    imgs = [getDataOriginal(img) for img in soup.find_all('img') if getDataOriginal(img) != 'None' and 'product' in getDataOriginal(img)]
     
