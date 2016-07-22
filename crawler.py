@@ -116,11 +116,25 @@ def pool(job,params):
     pool.shutdown()
     pool.wait()
     print 'job well done!'
+
+def standardizedUrl(url):
+    url = url.replace('http://','')
+    if len(re.findall('[/]\d*\S[/]',url)) == 0 :
+        parts = url.split('/')
+        length = len(parts)
+        temp = parts[length-1]
+        parts[length-1] = 'page'
+        parts.append('1')
+        parts.append(temp)
+        return 'http://'+'/'.join(parts)
+    return url;
+     
 #http://www.designbyhumans.com/shop/mens-t-shirts/page/1/?av=artwork
 
 def crawlSubcategory(url):
     if '?av=artwork' not in url:
         raise ValueError('Url not contain ?av=artwork, go fuck yourself!...')
+    url = standardizedUrl(url)
     soup = parseHTML(url)
     lastPage = getLastPageNumber(soup)
     pageUrls = [re.sub('[/]\d+[/]','/'+str(i)+'/',url) for i in range(1,lastPage+1)]
@@ -129,11 +143,9 @@ def crawlSubcategory(url):
     print 'Number of images:',len(data)
     setDir()
     print 'Begin download images job!'
-    pool(dowloadImagesJob,data)
+#    pool(dowloadImagesJob,data)
 ##################
 #Test   
 url = 'http://www.designbyhumans.com/shop/mens-t-shirts/?av=artwork'
 data = []
 crawlSubcategory(url)
-
-
