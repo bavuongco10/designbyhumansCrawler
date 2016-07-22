@@ -138,12 +138,12 @@ def crawlSubcategory(url):
     soup = parseHTML(url)
     lastPage = getLastPageNumber(soup)
     pageUrls = [re.sub('[/]\d+[/]','/'+str(i)+'/',url) for i in range(1,lastPage+1)]
-    print 'Begin get image job!'
+    print 'Begin get image urls job!'
     pool(getImagesJob,pageUrls)
     print 'Number of images:',len(data)
     setDir()
     print 'Begin download images job!'
-#    pool(dowloadImagesJob,data)
+    pool(dowloadImagesJob,data)
 ##################
 #Test   
 url = 'http://www.designbyhumans.com/shop/mens-t-shirts/?av=artwork'
